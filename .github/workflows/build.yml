@@ -1,0 +1,61 @@
+name: Build
+
+on:
+  push:
+    branches:
+      - "*"
+  pull_request:
+    branches:
+      - "*"
+    types: [opened, synchronize, reopened]
+
+jobs:
+  build:
+    name: Build binaries
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        configuration:
+          - debug
+          - release
+    steps:
+      - name: Check out files
+        uses: actions/checkout@v2
+        with:
+          submodules: true
+          fetch-depth: 0
+          lfs: false
+
+      - name: Install WDK
+        run: |
+          curl -L --output wdksetup.exe https://go.microsoft.com/fwlink/?linkid=2166289
+          cmd /c start /wait wdksetup.exe /ceip off /quiet /features +
+
+      - name: Setup CMake
+        uses: lukka/get-cmake@latest
+
+      - name: Setup problem matching
+        uses: ammaraskar/msvc-problem-matcher@master
+
+      - name: Setup DevCmd
+        uses: ilammy/msvc-dev-cmd@v1.10.0
+        with:
+          arch: x64
+
+      - name: Setup Ninja
+        uses: ashutoshvarma/setup-ninja@master
+
+      - name: Configure CMake
+        run: cmake --preset=${{matrix.configuration}}
+
+      - name: Build ${{matrix.configuration}}
+        run: cmake --build --preset=${{matrix.configuration}}
+
+      - name: Upload ${{matrix.configuration}} binaries
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{matrix.configuration}} binaries
+          path: |
+            build/${{matrix.configuration}}/artifacts/*.exe
+            build/${{matrix.configuration}}/artifacts/*.pdb
+            build/${{matrix.configuration}}/artifacts/*.sys

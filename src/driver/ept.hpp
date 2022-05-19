@@ -26,9 +26,14 @@ namespace vmx
 
 	struct ept_hook
 	{
+		ept_hook(const uint64_t physical_base);
+		~ept_hook();
+
 		DECLSPEC_PAGE_ALIGN uint8_t fake_page[PAGE_SIZE]{};
+		DECLSPEC_PAGE_ALIGN uint8_t diff_page[PAGE_SIZE]{};
 
 		uint64_t physical_base_address{};
+		void* mapped_virtual_address{};
 
 		pml1* target_page{};
 		pml1 original_entry{};
@@ -77,9 +82,9 @@ namespace vmx
 		static void free_translation_hints(ept_translation_hint* hints);
 
 	private:
-		DECLSPEC_PAGE_ALIGN pml4 epml4[EPT_PML4E_ENTRY_COUNT]{};
-		DECLSPEC_PAGE_ALIGN pml3 epdpt[EPT_PDPTE_ENTRY_COUNT]{};
-		DECLSPEC_PAGE_ALIGN pml2 epde[EPT_PDPTE_ENTRY_COUNT][EPT_PDE_ENTRY_COUNT]{};
+		DECLSPEC_PAGE_ALIGN pml4 epml4[EPT_PML4E_ENTRY_COUNT];
+		DECLSPEC_PAGE_ALIGN pml3 epdpt[EPT_PDPTE_ENTRY_COUNT];
+		DECLSPEC_PAGE_ALIGN pml2 epde[EPT_PDPTE_ENTRY_COUNT][EPT_PDE_ENTRY_COUNT];
 
 		ept_split* ept_splits{nullptr};
 		ept_hook* ept_hooks{nullptr};
@@ -89,7 +94,7 @@ namespace vmx
 		pml1* find_pml1_table(uint64_t physical_address) const;
 
 		ept_split* allocate_ept_split();
-		ept_hook* allocate_ept_hook();
+		ept_hook* allocate_ept_hook(uint64_t physical_address);
 		ept_hook* find_ept_hook(uint64_t physical_address) const;
 
 		ept_hook* get_or_create_ept_hook(void* destination, ept_translation_hint* translation_hint = nullptr);
